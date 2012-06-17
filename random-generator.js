@@ -21,10 +21,9 @@ function Server() {
         options: { verbose: true, trace: true },  // useful for debugging
         as_server: true,                            // server or client
         uuid: self.uuid,                            // uuid of this rpc endpoint (string)
-        http_port: 81,                              // http port this rpc is bound to
+        http_port: 82,                              // http port this rpc is bound to
 		connect_async: false,                       // if client, this will block 
-        service: "ws-server-rpc",                    // websocket name
-		iface: "ws-server-rpc"
+        service: "ws-random"	                    // websocket name		
     });
 
     // tell http server associated with this rpc instance (by port)

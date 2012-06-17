@@ -25,9 +25,17 @@ function Server() {
         uuid: self.uuid,                            // uuid of this rpc endpoint (string)
         http_port: 81,                              // http port this rpc is bound to
 		connect_async: false,                       // if client, this will block 
-        service: "ws-server-rpc",                    // websocket name
-		iface: "ws-server-rpc"
+        service: "ws-server-rpc"                    // websocket name		
     });
+	
+	//# this is a client connection to a random generator server
+	self.rpc_client = new RPC({
+		options: { verbose: true, trace: true },  // useful for debugging
+		as_server: false,                           // <--- client
+		uuid: self.uuid,                            // uuid of this rpc endpoint (string)
+		address: "ws://127.0.0.1:82/ws-random"    // websocket address of the target endpoint
+	});
+
 
     // tell http server associated with this rpc instance (by port)
     // to handle following folders (relative to rte folder)
@@ -37,25 +45,43 @@ function Server() {
         "/aspect": "/http/aspect"
     });
 	
+	self.rpc_client.on_connect = function() 
+	{
+		log.debug("Connected to random generator");
+	}
+	
     // test rpc function that will be called from the web page
 	self.rpc.iface.get_random = function(msg)
     {		
             log.debug("Got RPC message:");
-			log.debug(msg);
-
-            var n = Math.random();
-            log.debug("Generating Random Number: "+n);
+			log.debug(msg);            
 			
-            // send response
+			//# forward the request to random generator.
+			//# the response coming from the random generator is 
+			//# sent to a web page in 'self.rpc_client.on_random'
+			self.rpc_client.dispatch({
+				op: "get_random"
+			});			           
+    }
+	
+	//# response from the random generator. the message is forwarded to a web page
+	self.rpc_client.iface.on_random = function(msg)
+	{
+			log.debug("RPC message from random generator:");
+			log.debug(msg);					
+			log.debug("random_number: "+msg.args.random_number);
+			log.debug("supplier_uuid: "+msg.args.supplier_uuid);
+			
+			// send response to a web page
             self.rpc.dispatch({
                 op : "on_random",
                 args :
                 {
-                    random_number : n,
-                    supplier_uuid : self.uuid
+                    random_number : msg.args.random_number,
+                    supplier_uuid : msg.args.supplier_uuid
                 }
             });
-    }
+	}
 	
     // test function to allow web page to echo data in console
     self.rpc.iface.echo = function(msg)
