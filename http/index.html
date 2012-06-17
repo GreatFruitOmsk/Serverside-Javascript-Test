@@ -1,0 +1,74 @@
+﻿<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style>
+    html body { font-family: "Trebuchet MS"; }
+    button { font-family: "Trebuchet MS"; }
+    #random { width: 400px; height: 64px; border: 1px solid #ccc; }
+    </style>
+
+    <script type="text/javascript" src="scripts/math.uuid.js"></script>
+    <script type="text/javascript" src="scripts/json2.js"></script>
+    <script type="text/javascript" src="scripts/jquery-1.7.2.js"></script>
+    <script type="text/javascript" src="aspect/aspect.js"></script>
+    <script type="text/javascript" src="aspect/aspect.rpc.js"></script>
+    <script type="text/javascript" src="aspect/aspect.utils.js"></script>
+
+    <script type="text/javascript">
+
+	$(document).ready(function() {
+
+        function Test()
+        {
+			console.log("i am woorking!");
+			
+            var self = this;
+            self.uuid = aspect.utils.generate_uuid();
+		 
+            self.rpc = new aspect.RPC
+            ({
+                iface: "ws-server-rpc",
+                uuid: self.uuid,
+				//service: "ws-server-rpc",
+				//address: "ws://127.0.0.1/ws-server-rpc"				
+            });
+
+            self.rpc.on_connect = function() 
+            {
+            // called when websocket is connected
+                $("random").html("Server connected, pleae click 'request random' button.");
+            }
+            
+			self.rpc.iface.on_random = function(msg) 
+			{
+                $("#random").html("Random number is: "+msg.args.random_number+"<br/>supplier_uuid: "+msg.args.supplier_uuid);
+			}
+
+            $("#request_random").click(function() {
+                self.rpc.dispatch({
+                    op : "get_random"
+                });
+            });
+        }
+
+        var test = new Test();
+	
+    });
+    	
+    </script>
+  </head>
+  <body>
+   <h1>Random Number Generator</h1>
+   <p /> 
+   <div id='random'>   </div>
+   <button id='request_random'>Request Random Number</button>
+
+  </body>
+</html>
