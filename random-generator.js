@@ -5,7 +5,7 @@ var log = require("log"),
     timer = require("timer"),
     json = require("json");
 
-function Server() {
+function RandomGenerator() {
 
     var self = this;
     self.uuid = generate_uuid();
@@ -13,10 +13,7 @@ function Server() {
     log.info("Server UUID: "+self.uuid);
     log.info("Creating RPC interface");
 
-    // establish RPC interface
-    // RPC interface is a wrapper around websocket
-    // in order to create a websocket server, the
-    // system will also create an internal http server
+    //# RPC client for server.js
     self.rpc =  new RPC({
 		options: { verbose: false, trace: false },  // useful for debugging
 		as_server: false,                           // <--- client
@@ -24,7 +21,7 @@ function Server() {
 		address: "ws://127.0.0.1:82/ws-random"    // websocket address of the target endpoint
 	});
 
-    // test rpc function that will be called from the web page
+	// request from random.js
 	self.rpc.iface.get_random = function(msg)
     {		
             log.debug("Got RPC message:");
@@ -48,8 +45,7 @@ function Server() {
     self.rpc.iface.echo = function(msg)
     {		
 			log.info(msg.args.text);
-    }	
+    }		
 }
 
-
-var server = new Server();
+var generator = new RandomGenerator();

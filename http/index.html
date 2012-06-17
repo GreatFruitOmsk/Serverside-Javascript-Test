@@ -26,24 +26,20 @@ and open the template in the editor.
 	$(document).ready(function() {
 
         function Test()
-        {
-			console.log("i am woorking!");
-			
+        {					
             var self = this;
             self.uuid = aspect.utils.generate_uuid();
 		 
             self.rpc = new aspect.RPC
             ({
                 iface: "ws-server-rpc",
-                uuid: self.uuid,
-				//service: "ws-server-rpc",
-				//address: "ws://127.0.0.1/ws-server-rpc"				
+                uuid: self.uuid				
             });
 
             self.rpc.on_connect = function() 
             {
             // called when websocket is connected
-                $("random").html("Server connected, pleae click 'request random' button.");
+                $("#random").html("Server connected, pleae click 'request random' button.");
             }
             
 			self.rpc.iface.on_random = function(msg) 

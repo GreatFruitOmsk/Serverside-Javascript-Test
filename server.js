@@ -10,7 +10,8 @@ var log = require("log"),
 function Server() {
 
     var self = this;
-	var clients = { }   // declare global storage object	
+	var clients = { }			//#	random generators uids
+	self.client_uuid_i = 0;		//# random generators daisy-chain index 
     self.uuid = generate_uuid();
 
     log.info("Server UUID: "+self.uuid);
@@ -29,6 +30,7 @@ function Server() {
         service: "ws-server-rpc"                    // websocket name		
     });
 
+	//# an interface for all random generators to connect to
 	self.rpc_random = new RPC({
         options: { verbose: true, trace: true },  // useful for debugging
         as_server: true,                            // server or client
@@ -37,7 +39,6 @@ function Server() {
 		connect_async: false,                       // if client, this will block 
         service: "ws-random"                    // websocket name		
     });
-
 
     // tell http server associated with this rpc instance (by port)
     // to handle following folders (relative to rte folder)
@@ -50,12 +51,14 @@ function Server() {
 	self.rpc_random.on_connect = function(uuid, service) 
 	{ 
 		log.debug("random generator is connected: uuid="+uuid+" service="+service);
-		clients[uuid] = this;		// store instance when connected
+		clients[uuid] = this;		//# store instance when connected
+		log.debug("existing clients:");
+		log.debug(Object.keys(clients));
 	}     
 	self.rpc_random.on_disconnect = function(uuid, service) 
 	{ 
 		log.debug("random generator is disconnected: uuid="+uuid+" service="+service);
-		delete clients[uuid]; 		// remove instance when disconnected
+		delete clients[uuid]; 		//# remove instance when disconnected
 	} 
 	
     // test rpc function that will be called from the web page
@@ -66,10 +69,34 @@ function Server() {
 			
 			//# forward the request to random generator.
 			//# the response coming from the random generator is 
-			//# sent to a web page in 'self.rpc_client.on_random'
-			self.rpc_random.dispatch({
-				op: "get_random"
-			});			           
+			//# sent to a web page in 'self.rpc_client.on_random'			
+			
+			//# get the keys of 'clients' dictionary
+			var all_clients_uuids = Object.keys(clients);
+			
+			//# alert if no random generator is connected and exit
+			if(all_clients_uuids.length==0) {
+				log.error("no random generators connected");
+				return;
+			}
+			
+			//# start the daisy-chain over if the index is out of bounds
+			if(self.client_uuid_i >= all_clients_uuids.length)
+				self.client_uuid_i = 0;
+			
+			//# select random generator uuid from the dictionary
+			var client_uuid = all_clients_uuids[self.client_uuid_i];
+			
+			//# move the index to the next element in chain (or start over)
+			self.client_uuid_i = (self.client_uuid_i+1)%all_clients_uuids.length;
+			
+			//# request a random number from the selected random generator
+			self.rpc_random.dispatch(
+				client_uuid, 
+				{
+					op: "get_random"
+				}
+			);			           
     }
 	
 	//# response from the random generator. the message is forwarded to a web page
