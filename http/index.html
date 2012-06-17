@@ -48,7 +48,9 @@ and open the template in the editor.
             
 			self.rpc.iface.on_random = function(msg) 
 			{
-                $("#random").html("Random number is: "+msg.args.random_number+"<br/>supplier_uuid: "+msg.args.supplier_uuid);
+                $("#random").html("Random number is: "+msg.args.random_number
+									+"<br/>proxy_uuid: "+msg.args.proxy_uuid
+									+"<br/>supplier_uuid: "+msg.args.supplier_uuid);
 			}
 
             $("#request_random").click(function() {

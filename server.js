@@ -10,6 +10,7 @@ var log = require("log"),
 function Server() {
 
     var self = this;
+	var clients = { }   // declare global storage object	
     self.uuid = generate_uuid();
 
     log.info("Server UUID: "+self.uuid);
@@ -27,14 +28,15 @@ function Server() {
 		connect_async: false,                       // if client, this will block 
         service: "ws-server-rpc"                    // websocket name		
     });
-	
-	//# this is a client connection to a random generator server
-	self.rpc_client = new RPC({
-		options: { verbose: true, trace: true },  // useful for debugging
-		as_server: false,                           // <--- client
-		uuid: self.uuid,                            // uuid of this rpc endpoint (string)
-		address: "ws://127.0.0.1:82/ws-random"    // websocket address of the target endpoint
-	});
+
+	self.rpc_random = new RPC({
+        options: { verbose: true, trace: true },  // useful for debugging
+        as_server: true,                            // server or client
+        uuid: self.uuid,                            // uuid of this rpc endpoint (string)
+        http_port: 82,                              // http port this rpc is bound to
+		connect_async: false,                       // if client, this will block 
+        service: "ws-random"                    // websocket name		
+    });
 
 
     // tell http server associated with this rpc instance (by port)
@@ -44,11 +46,17 @@ function Server() {
          "/scripts": "/http/scripts",
         "/aspect": "/http/aspect"
     });
-	
-	self.rpc_client.on_connect = function() 
-	{
-		log.debug("Connected to random generator");
-	}
+		
+	self.rpc_random.on_connect = function(uuid, service) 
+	{ 
+		log.debug("random generator is connected: uuid="+uuid+" service="+service);
+		clients[uuid] = this;		// store instance when connected
+	}     
+	self.rpc_random.on_disconnect = function(uuid, service) 
+	{ 
+		log.debug("random generator is disconnected: uuid="+uuid+" service="+service);
+		delete clients[uuid]; 		// remove instance when disconnected
+	} 
 	
     // test rpc function that will be called from the web page
 	self.rpc.iface.get_random = function(msg)
@@ -59,13 +67,13 @@ function Server() {
 			//# forward the request to random generator.
 			//# the response coming from the random generator is 
 			//# sent to a web page in 'self.rpc_client.on_random'
-			self.rpc_client.dispatch({
+			self.rpc_random.dispatch({
 				op: "get_random"
 			});			           
     }
 	
 	//# response from the random generator. the message is forwarded to a web page
-	self.rpc_client.iface.on_random = function(msg)
+	self.rpc_random.iface.on_random = function(msg)
 	{
 			log.debug("RPC message from random generator:");
 			log.debug(msg);					
@@ -78,6 +86,7 @@ function Server() {
                 args :
                 {
                     random_number : msg.args.random_number,
+					proxy_uuid    : self.uuid,
                     supplier_uuid : msg.args.supplier_uuid
                 }
             });
